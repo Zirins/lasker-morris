@@ -1,4 +1,87 @@
 import sys
+import math
+import time
+
+NEIGHBORS = {
+    "a1": ["a4", "d1"],
+    "a4": ["a1", "a7", "b4"],
+    "a7": ["a4", "d7"],
+    "b2": ["b4", "d2"],
+    "b4": ["b2", "b6", "a4", "c4"],
+    "b6": ["b4", "d6"],
+    "c3": ["c4", "d3"],
+    "c4": ["c3", "c5", "b4"],
+    "c5": ["c4", "d5"],
+    "d1": ["a1", "d2", "g1"],
+    "d2": ["b2", "d1", "d3", "f2"],
+    "d3": ["c3", "d2", "e3"],
+    "d5": ["c5", "d6", "e5"],
+    "d6": ["b6", "d5", "d7", "f6"],
+    "d7": ["a7", "d6", "g7"],
+    "e3": ["d3", "e4"],
+    "e4": ["e3", "e5", "f4"],
+    "e5": ["d5", "e4"],
+    "f2": ["d2", "f4"],
+    "f4": ["e4", "f2", "f6", "g4"],
+    "f6": ["d6", "f4"],
+    "g1": ["d1", "g4"],
+    "g4": ["f4", "g1", "g7"],
+    "g7": ["d7", "g4"],
+}
+
+MILLS = [
+    # Horizontal mills
+    ["a1", "a4", "a7"],
+    ["b2", "b4", "b6"],
+    ["c3", "c4", "c5"],
+    ["d1", "d2", "d3"],
+    ["d5", "d6", "d7"],
+    ["e3", "e4", "e5"],
+    ["f2", "f4", "f6"],
+    ["g1", "g4", "g7"],
+    # Vertical mills
+    ["a1", "d1", "g1"],
+    ["b2", "d2", "f2"],
+    ["c3", "d3", "e3"],
+    ["a4", "b4", "c4"],
+    ["e4", "f4", "g4"],
+    ["c5", "d5", "e5"],
+    ["b6", "d6", "f6"],
+    ["a7", "d7", "g7"],
+]
+
+
+
+
+
+def check_mill(board, point, color):
+    """
+    Returns True if placing/moving a stone of 'color' at 'point' forms a mill.
+    We only need to check lines that include 'point'
+    :param board:
+    :param point:
+    :param color:
+    :return:
+    """
+    for trio in MILLS:
+        if point in trio:
+            stones_count = 0
+            for p in trio: # check if all points in the trio have the same color
+                if p == point:
+                    stones_count += 1
+                elif board[p] == color:
+                    stones_count += 1
+            if stones_count == 3:
+                return True
+    return False
+
+
+
+
+
+
+
+
 
 def check_win(board, symbol):
     # Check rows
@@ -68,7 +151,45 @@ def main():
     player_symbol = 'B' if player_color == 'blue' else 'O'
     opponent_symbol = 'O' if player_color == 'blue' else 'B'
 
-    board = {f"{r}{c}": ' ' for r in ['a','b','c'] for c in ['1','2','3']}
+    # Define invalid board positions
+    # self.invalid_fields: Set[str] = {
+    #     "a2",
+    #     "a3",
+    #     "a5",
+    #     "a6",
+    #     "b1",
+    #     "b3",
+    #     "b5",
+    #     "b7",
+    #     "c1",
+    #     "c2",
+    #     "c6",
+    #     "c7",
+    #     "d4",
+    #     "e1",
+    #     "e2",
+    #     "e6",
+    #     "e7",
+    #     "f1",
+    #     "f3",
+    #     "f5",
+    #     "f7",
+    #     "g2",
+    #     "g3",
+    #     "g5",
+    #     "g6",
+    # }
+
+    #board = {f"{r}{c}": ' ' for r in ['a','b','c'] for c in ['1','2','3']}
+    board = {
+        'a7': '', 'd7': '', 'g7': '',
+        'b6': '', 'd6': '', 'f6': '',
+        'c5': '', 'd5': '', 'e5': '',
+        'a4': '', 'b4': '', 'c4': '', 'e4': '', 'f4': '', 'g4': '',
+        'c3': '', 'd3': '', 'e3': '',
+        'b2': '', 'd2': '', 'f2': '',
+        'a1': '', 'd1': '', 'g1': ''
+    }
 
     if player_color == 'blue':
         _, move = minimax(board, 0, True, float('-inf'), float('inf'), player_symbol, opponent_symbol)
@@ -85,7 +206,11 @@ def main():
             if opponent_move in board and board[opponent_move] == ' ':
                 board[opponent_move] = opponent_symbol
 
+            start = time.time()
             _, move = minimax(board, 0, True, float('-inf'), float('inf'), player_symbol, opponent_symbol)
+            end = time.time()
+            elapsed = end - start
+
             print(move, flush=True)
             board[move] = player_symbol
         except EOFError:
