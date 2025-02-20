@@ -89,7 +89,6 @@ def can_remove_this_stone(board, pos, opp):
     if not is_stone_is_mill(board, pos, opp):
         return True
 
-
     for p, occupant in board.items():
         if occupant == opp:
             if not is_stone_is_mill(board, p, opp):
@@ -99,7 +98,6 @@ def can_remove_this_stone(board, pos, opp):
 
 def possible_removals(board, opp):
     # gather all stones of the opponent
-    opp_positions = [pos for pos, c in board.items() if c == opp_color]
     removables = []
     for pos, occupant in board.items():
         if occupant == opp:
