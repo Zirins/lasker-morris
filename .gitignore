@@ -1,0 +1,21 @@
+# Ignore the virtual environment
+venv/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore log and temp files
+*.log
+*.tmp
+
+# Ignore system-specific files (Mac & Windows)
+.DS_Store
+Thumbs.db
+
+# Ignore IDE/editor config files
+.vscode/
+.idea/
+*.sublime-workspace
