@@ -1,0 +1,10 @@
+win game +10000000000 points!!!!
+-block opponent mill
+-occupy middle junctions
+-make mill
+--maximize possible mills
+--block enemy mills using a mill
+-prevent double / sliding mills
+-create double / sliding mills
+-immobilize existing mill
+-reduce opponents available moves

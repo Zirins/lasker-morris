@@ -51,9 +51,6 @@ MILLS = [
 ]
 
 
-
-
-
 def check_mill(board, point, color):
     """
     Returns True if placing/moving a stone of 'color' at 'point' forms a mill.
@@ -66,7 +63,7 @@ def check_mill(board, point, color):
     for trio in MILLS:
         if point in trio:
             stones_count = 0
-            for p in trio: # check if all points in the trio have the same color
+            for p in trio:  # check if all points in the trio have the same color
                 if p == point:
                     stones_count += 1
                 elif board[p] == color:
@@ -76,11 +73,47 @@ def check_mill(board, point, color):
     return False
 
 
+def is_stone_is_mill(board, point, color):
+    """
+    Check if stone at 'point' is part of a mill
+    :return:
+    """
+    for trio in MILLS:
+        for point in trio:
+            if all(board[t] == color for t in trio):
+                return True
+    return False
 
 
+def can_remove_this_stone(board, pos, opp):
+    if not is_stone_is_mill(board, pos, opp):
+        return True
 
 
+    for p, occupant in board.items():
+        if occupant == opp:
+            if not is_stone_is_mill(board, p, opp):
+                return False
+    return True
 
+
+def possible_removals(board, opp):
+    # gather all stones of the opponent
+    opp_positions = [pos for pos, c in board.items() if c == opp_color]
+    removables = []
+    for pos, occupant in board.items():
+        if occupant == opp:
+            if can_remove_this_stone(board, pos, opp):
+                removables.append(pos)
+            return removables
+
+
+def validMove(board, move):
+    for key, value in board.items():
+        if move == key:
+            if board[move] == '':
+                return True
+    return False
 
 
 def check_win(board, symbol):
@@ -99,18 +132,24 @@ def check_win(board, symbol):
         return True
     return False
 
+
 def is_draw(board):
     return ' ' not in board.values()
 
+
 def get_empty_cells(board):
     return [cell for cell, val in board.items() if val == ' ']
+
 
 def make_move(board, move, symbol):
     new_board = board.copy()
     new_board[move] = symbol
     return new_board
 
+
 def minimax(board, depth, is_maximizing, alpha, beta, player_symbol, opponent_symbol):
+    # if time.time() - start_time >= limit - 0.05;
+
     if check_win(board, player_symbol):
         return (100 - depth, None)
     if check_win(board, opponent_symbol):
@@ -123,7 +162,7 @@ def minimax(board, depth, is_maximizing, alpha, beta, player_symbol, opponent_sy
         best_move = None
         for move in get_empty_cells(board):
             new_board = make_move(board, move, player_symbol)
-            value, _ = minimax(new_board, depth+1, False, alpha, beta, player_symbol, opponent_symbol)
+            value, _ = minimax(new_board, depth + 1, False, alpha, beta, player_symbol, opponent_symbol)
             if value > best_value:
                 best_value, best_move = value, move
             alpha = max(alpha, best_value)
@@ -135,13 +174,14 @@ def minimax(board, depth, is_maximizing, alpha, beta, player_symbol, opponent_sy
         best_move = None
         for move in get_empty_cells(board):
             new_board = make_move(board, move, opponent_symbol)
-            value, _ = minimax(new_board, depth+1, True, alpha, beta, player_symbol, opponent_symbol)
+            value, _ = minimax(new_board, depth + 1, True, alpha, beta, player_symbol, opponent_symbol)
             if value < best_value:
                 best_value, best_move = value, move
             beta = min(beta, best_value)
             if beta <= alpha:
                 break
         return (best_value, best_move)
+
 
 def main():
     player_color = sys.stdin.readline().strip()
@@ -215,6 +255,7 @@ def main():
             board[move] = player_symbol
         except EOFError:
             break
+
 
 if __name__ == '__main__':
     main()
