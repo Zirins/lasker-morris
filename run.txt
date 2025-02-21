@@ -1,0 +1,2 @@
+WeAreA
+python WeAreA.py
