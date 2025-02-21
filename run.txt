@@ -1,2 +1,2 @@
-WeAreA
-python WeAreA.py
+StockMills
+python StockMills.py
