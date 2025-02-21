@@ -8,3 +8,15 @@ win game +10000000000 points!!!! *
 -create double / sliding mills *sliding
 -immobilize existing mill
 -reduce opponents available moves
+
+
+orange
+
+h1 d5 r0
+
+h1 d7 r0
+
+h1 d6 c5
+
+h1 c3 r0
+

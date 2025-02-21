@@ -84,14 +84,6 @@ def count_on_board(board, color):
     """Count how many stones 'color' has on the board."""
     return sum(1 for _, occupant in board.items() if occupant == color)
 
-def check_mill(board, point, color):
-    """Check if occupying 'point' with 'color' completes a mill."""
-    for triple in MILLS:
-        if point in triple:
-            if all(board[t] == color for t in triple):
-                return True
-    return False
-
 def is_stone_in_mill(board, point, color):
     """Check if the stone at 'point' is part of a fully formed mill."""
     for triple in MILLS:
@@ -130,7 +122,7 @@ def forms_mill_after_placement(board, point, color):
     """Place a stone at 'point' temporarily, check mill, then revert."""
     old = board[point]
     board[point] = color
-    res = check_mill(board, point, color)
+    res = is_stone_in_mill(board, point, color)
     board[point] = old
     return res
 
@@ -140,7 +132,7 @@ def forms_mill_after_move(board, source, target, color):
     old_tgt = board[target]
     board[source] = None
     board[target] = color
-    res = check_mill(board, target, color)
+    res = is_stone_in_mill(board, target, color)
     board[source] = old_src
     board[target] = old_tgt
     return res
@@ -244,7 +236,9 @@ def is_terminal(state):
     board = state["board"]
     cblue = count_on_board(board, "blue")
     corange = count_on_board(board, "orange")
-    if cblue <= 2 or corange <= 2:
+    if state["in_hand"]["blue"] == 0 and cblue <= 2:
+        return True
+    if state["in_hand"]["orange"] == 0 and corange <= 2:
         return True
 
     # If current player cannot move
@@ -286,20 +280,30 @@ def evaluate(state):
     board = state["board"]
     color = state["current_player"]
     opp = "blue" if color == "orange" else "orange"
+    score = 0
 
     mycount = count_on_board(board, color)
     oppcount = count_on_board(board, opp)
 
     # Mobility for me
-    my_moves = len(generate_moves(state))
+    my_moves = generate_moves(state)
 
     # Mobility for opp
     alt_state = clone_state(state)
     alt_state["current_player"] = opp
-    opp_moves = len(generate_moves(alt_state))
+    opp_moves = generate_moves(alt_state)
+
+    center_positions = ["d5", "d3", "c4", "e4"]
+    center_score = sum(1 if board[pos] == color else -1 if board[pos] == opp else 0 for pos in center_positions)
+    for item in my_moves:
+        if is_stone_in_mill(board, item, color):
+            score += 20
+    for item in opp_moves:
+        if is_stone_in_mill(board, item, opp):
+            score -= 30
 
     # Weighted sum
-    score = 10*(mycount - oppcount) + 2*(my_moves - opp_moves)
+    score += 2*(mycount - oppcount) + (len(my_moves) - len(opp_moves)) + center_score
     return score
 
 def evaluate_or_utility(state):
@@ -316,15 +320,15 @@ def minimax_alpha_beta(state, alpha, beta, depth, max_depth, maximizing, start_t
     """
     # Time check
     if time.time() - start_time >= time_limit:
-        return (evaluate_or_utility(state), None)
+        return evaluate_or_utility(state), None
 
     # Depth or terminal check
     if depth >= max_depth or is_terminal(state):
-        return (evaluate_or_utility(state), None)
+        return evaluate_or_utility(state), None
 
     moves = generate_moves(state)
     if not moves:
-        return (evaluate_or_utility(state), None)
+        return evaluate_or_utility(state), None
 
     if maximizing:
         best_val = -math.inf
@@ -340,7 +344,7 @@ def minimax_alpha_beta(state, alpha, beta, depth, max_depth, maximizing, start_t
             alpha = max(alpha, best_val)
             if beta <= alpha:
                 break
-        return (best_val, best_move)
+        return best_val, best_move
     else:
         worst_val = math.inf
         worst_move = None
@@ -356,7 +360,7 @@ def minimax_alpha_beta(state, alpha, beta, depth, max_depth, maximizing, start_t
             beta = min(beta, worst_val)
             if beta <= alpha:
                 break
-        return (worst_val, worst_move)
+        return worst_val, worst_move
 
 def iterative_deepening(state, max_iter_depth, time_limit):
     """
@@ -370,41 +374,44 @@ def iterative_deepening(state, max_iter_depth, time_limit):
     for depth in range(1, max_iter_depth+1):
         if time.time() - start >= time_limit:
             break
+       # print(depth)
         val, move = minimax_alpha_beta(state, -math.inf, math.inf,
                                        0, depth,
                                        True, start, time_limit)
         if time.time() - start >= time_limit:
             break
+        # print (move)
+        # print (val)
         if move is not None:
-            best_val_global = val
-            best_move_global = move
-
+            if val > best_val_global:
+                best_val_global = val
+                best_move_global = move
     return best_val_global, best_move_global
 
 def main():
-    color = sys.stdin.readline().strip()
-    if color not in ["blue", "orange"]:
-        return
-
     board = create_initial_board()
     in_hand = {"blue": 10, "orange": 10}
     state = {
         "board": board,
         "in_hand": in_hand,
-        "current_player": color
+        "current_player": "blue"
     }
+
+    color = sys.stdin.readline().strip()
+    if color not in ["blue", "orange"]:
+        return
 
     # If we're first (blue), produce a move immediately
     if color == "blue":
-        _, best_move = iterative_deepening(state, max_iter_depth=6, time_limit=4.5)
+        _, best_move = iterative_deepening(state, max_iter_depth=4, time_limit=4.5)
         # If no move found, fallback
         if not best_move:
+            print("fallback move")
             all_moves = generate_moves(state)
             best_move = all_moves[0] if all_moves else ("h1","a4","r0")
         s, t, r = best_move
         print(f"{s} {t} {r}", flush=True)
         state = apply_move(state, s, t, r)
-
     while True:
         try:
             line = sys.stdin.readline().strip()
@@ -415,6 +422,7 @@ def main():
 
             # Opponent's move
             parts = line.split()
+            # print (parts)
             if len(parts) == 3:
                 o_src, o_tgt, o_rem = parts
                 # Apply opponent move
@@ -422,8 +430,9 @@ def main():
 
             # Now our turn
             state["current_player"] = color
-            _, best_move = iterative_deepening(state, max_iter_depth=6, time_limit=4.5)
+            _, best_move = iterative_deepening(state, max_iter_depth=4, time_limit=4.5)
             if not best_move:
+                print("fallback move")
                 all_moves = generate_moves(state)
                 best_move = all_moves[0] if all_moves else ("h1","a4","r0")
 
