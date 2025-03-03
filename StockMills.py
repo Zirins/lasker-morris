@@ -236,6 +236,8 @@ def evaluate(state):
             score += position_weights.get(pos, 0)
         else:
             score -= position_weights.get(pos, 0)
+        if state["in_hand"] == 0 and is_stone_in_mill(board, pos, color):
+            score -= 15
 
     # Mobility (number of legal moves)
     player_mobility = len(generate_moves(state))
@@ -243,11 +245,6 @@ def evaluate(state):
     temp_state["current_player"] = opp
     opponent_mobility = len(generate_moves(temp_state))
     score += 10 * (player_mobility - opponent_mobility)
-
-    if()
-
-    # Defense (mill blocking)
-    # score -= 125 * opponent_potential_mills
 
     return score
 
@@ -343,7 +340,7 @@ def main():
 
             # Calculate our move
             state["current_player"] = color
-            _, best_move = iterative_deepening(state, max_iter_depth=4, time_limit=4.5)
+            _, best_move = iterative_deepening(state, max_iter_depth=10, time_limit=4.5)
             if not best_move:
                 moves = generate_moves(state)
                 best_move = moves[0] if moves else ("h1", "a4", "r0")
