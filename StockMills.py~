@@ -51,10 +51,6 @@ MILLS = [
 ]
 
 def create_initial_board():
-    """
-    Initialize a dictionary containing ONLY the 24 valid intersections.
-    Each key points to either None, 'blue', or 'orange'.
-    """
     valid_points = [
         "a7", "d7", "g7",
         "b6", "d6", "f6",
@@ -70,26 +66,21 @@ def create_initial_board():
     return board
 
 def hand_src(color):
-    """Returns 'h1' if color == 'blue', 'h2' if color == 'orange'."""
     return "h1" if color == "blue" else "h2"
 
 def count_on_board(board, color):
-    """Count how many stones 'color' has on the board."""
     return sum(1 for occupant in board.values() if occupant == color)
 
-def is_stone_in_mill(board, point, color):
-    """Check if the stone at 'point' is part of a fully formed mill."""
+def is_stone_in_mill(board, location, color):
     for triple in MILLS:
-        if point in triple:
+        if location in triple:
             if all(board[t] == color for t in triple):
                 return True
     return False
 
 def can_remove_this_stone(board, pos, opp):
     """
-    Stone removal rule:
-      - If the stone is not in a mill, removable.
-      - If it's in a mill, only removable if ALL opponent stones are in mills.
+    Stones in mills cannot be removed unless all opp pieces are in mills
     """
     if not is_stone_in_mill(board, pos, opp):
         return True
@@ -99,10 +90,6 @@ def can_remove_this_stone(board, pos, opp):
     return True
 
 def possible_removals(board, opp):
-    """
-    Return a list of positions of opponent stones that can be removed,
-    obeying the removal rule.
-    """
     removables = []
     for pos, occupant in board.items():
         if occupant == opp and can_remove_this_stone(board, pos, opp):
@@ -110,7 +97,6 @@ def possible_removals(board, opp):
     return removables
 
 def forms_mill_after_placement(board, point, color):
-    """Temporarily place a stone at 'point' and check for a mill."""
     old = board[point]
     board[point] = color
     res = is_stone_in_mill(board, point, color)
@@ -118,7 +104,6 @@ def forms_mill_after_placement(board, point, color):
     return res
 
 def forms_mill_after_move(board, source, target, color):
-    """Temporarily move stone from 'source' to 'target' and check for a mill."""
     old_src = board[source]
     old_tgt = board[target]
     board[source] = None
@@ -130,8 +115,7 @@ def forms_mill_after_move(board, source, target, color):
 
 def generate_moves(state):
     """
-    Generate all valid moves for state['current_player'] as a list of
-    (source, target, remove) tuples.
+    Generate all valid moves for player state as a list of tuples.
     """
     board = state["board"]
     color = state["current_player"]
@@ -139,7 +123,6 @@ def generate_moves(state):
     in_hand = state["in_hand"][color]
     moves = []
 
-    # 1) Placement moves if stones remain in hand.
     if in_hand > 0:
         for point, occupant in board.items():
             if occupant is None:
@@ -149,36 +132,35 @@ def generate_moves(state):
                         moves.append((hand_src(color), point, rpos))
                 else:
                     moves.append((hand_src(color), point, "r0"))
-    else:
-        # 2) Movement moves from board.
-        my_positions = [p for p, occupant in board.items() if occupant == color]
-        can_fly = (len(my_positions) == 3)
-        for src in my_positions:
-            if can_fly:
-                for tgt, occupant in board.items():
-                    if occupant is None:
-                        if forms_mill_after_move(board, src, tgt, color):
-                            remove_list = possible_removals(board, opp)
-                            for rpos in remove_list:
-                                moves.append((src, tgt, rpos))
-                        else:
-                            moves.append((src, tgt, "r0"))
-            else:
-                for tgt in ADJACENCY.get(src, []):
-                    if board[tgt] is None:
-                        if forms_mill_after_move(board, src, tgt, color):
-                            remove_list = possible_removals(board, opp)
-                            for rpos in remove_list:
-                                moves.append((src, tgt, rpos))
-                        else:
-                            moves.append((src, tgt, "r0"))
+
+    my_positions = [p for p, occupant in board.items() if occupant == color]
+    can_fly = (len(my_positions) + in_hand == 3)
+
+    for src in my_positions:
+
+
+
+        if can_fly:
+            for tgt, occupant in board.items():
+                if occupant is None:
+                    if forms_mill_after_move(board, src, tgt, color):
+                        remove_list = possible_removals(board, opp)
+                        for rpos in remove_list:
+                            moves.append((src, tgt, rpos))
+                    else:
+                        moves.append((src, tgt, "r0"))
+        else:
+            for tgt in ADJACENCY.get(src, []):
+                if board[tgt] is None:
+                    if forms_mill_after_move(board, src, tgt, color):
+                        remove_list = possible_removals(board, opp)
+                        for rpos in remove_list:
+                            moves.append((src, tgt, rpos))
+                    else:
+                        moves.append((src, tgt, "r0"))
     return moves
 
 def apply_move(state, source, target, remove):
-    """
-    Apply the move (source -> target, remove) and return a new state.
-    Adjusts stones in hand and switches the current player.
-    """
     new_state = clone_state(state)
     board = new_state["board"]
     color = new_state["current_player"]
@@ -205,10 +187,6 @@ def clone_state(state):
     }
 
 def is_terminal(state):
-    """
-    Terminal if a player's stone count (on board) is ≤2 when no stones remain in hand,
-    or if the current player has no valid moves.
-    """
     board = state["board"]
     cblue = count_on_board(board, "blue")
     corange = count_on_board(board, "orange")
@@ -219,12 +197,6 @@ def is_terminal(state):
     return len(generate_moves(state)) == 0
 
 def utility(state):
-    """
-    Return terminal utility:
-      +infinity if current player wins,
-      -infinity if loses,
-      0 otherwise.
-    """
     board = state["board"]
     color = state["current_player"]
     opp = "blue" if color == "orange" else "orange"
@@ -240,13 +212,6 @@ def utility(state):
     return 0
 
 def evaluate(state):
-    """
-    Heuristic evaluation for non-terminal states based on:
-      - Stone count difference
-      - Mobility (number of moves)
-      - Center control
-      - Bonus for stones in mills
-    """
     board = state["board"]
     color = state["current_player"]
     opp = "blue" if color == "orange" else "orange"
@@ -262,7 +227,7 @@ def evaluate(state):
     opp_moves = generate_moves(alt_state)
 
     # Center control bonus.
-    center_positions = ["d5", "d3", "c4", "e4"]
+    center_positions = ["d6", "d2", "b4", "f4"]
     center_score = sum(1 if board[pos] == color else -1 if board[pos] == opp else 0 for pos in center_positions)
     for pos in center_positions:
         if board.get(pos) == color:
@@ -270,27 +235,30 @@ def evaluate(state):
         elif board.get(pos) == opp:
             center_score -= 1
 
-    # Bonus for stones that are part of a mill.
-    my_mill_bonus = sum(20 for pos, occupant in board.items() if occupant == color and is_stone_in_mill(board, pos, color))
+    # Rewards AI for making mills
+    my_mill_bonus = sum(50 for pos, occupant in board.items() if occupant == color and is_stone_in_mill(board, pos, color))
+    # Penalty for opponent making mills
     opp_mill_penalty = sum(30 for pos, occupant in board.items() if occupant == opp and is_stone_in_mill(board, pos, opp))
+    #potential mills
+    #placing a piece vs moving/sliding a piece
+    potential_mills = sum(15 for pos, occupant in board.items() if occupant == color and forms_mill_after_placement(board, pos, color))
+    #blocking opp mill
+
 
     score += 2 * (mycount - oppcount)
-    score += (len(my_moves) - len(opp_moves))
+    #mobility
+    score += 5 * (len(my_moves) - len(opp_moves))
     score += center_score
     score += my_mill_bonus - opp_mill_penalty
-
+    score += potential_mills
     return score
 
 def evaluate_or_utility(state):
-    """Return utility if terminal, else heuristic evaluation."""
     if is_terminal(state):
         return utility(state)
     return evaluate(state)
 
 def minimax_alpha_beta(state, alpha, beta, depth, max_depth, maximizing, start_time, time_limit):
-    """
-    Depth-limited alpha-beta search.
-    """
     if time.time() - start_time >= time_limit:
         return evaluate_or_utility(state), None
     if depth >= max_depth or is_terminal(state):
@@ -328,9 +296,6 @@ def minimax_alpha_beta(state, alpha, beta, depth, max_depth, maximizing, start_t
         return worst_val, worst_move
 
 def iterative_deepening(state, max_iter_depth, time_limit):
-    """
-    Iterative deepening from depth 1 to max_iter_depth, stopping if time runs out.
-    """
     start = time.time()
     best_val_global = -math.inf
     best_move_global = None
@@ -355,7 +320,7 @@ def main():
     if color not in ["blue", "orange"]:
         return
 
-    # If we're assigned blue, make the first move immediately.
+    # Blue always starts
     if color == "blue":
         _, best_move = iterative_deepening(state, max_iter_depth=4, time_limit=4.5)
         if not best_move:
@@ -371,13 +336,13 @@ def main():
             if not line or line.startswith("END"):
                 break
 
-            # Process opponent's move.
+            # Get opponent's move
             parts = line.split()
             if len(parts) == 3:
                 o_src, o_tgt, o_rem = parts
                 state = apply_move(state, o_src, o_tgt, o_rem)
 
-            # Set current player to our color before our move.
+            # Calculate our move
             state["current_player"] = color
             _, best_move = iterative_deepening(state, max_iter_depth=4, time_limit=4.5)
             if not best_move:

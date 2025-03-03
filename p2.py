@@ -361,8 +361,7 @@ def main():
                 o_src, o_tgt, o_rem = parts
                 state = apply_move(state, o_src, o_tgt, o_rem)
 
-            # Calculate our move
-            state["current_player"] = color
+            # Calculate our move            state["current_player"] = color
             best_move = hey_google(state, chat)
             s, t, r = best_move
             print(f"{s} {t} {r}", flush=True)
