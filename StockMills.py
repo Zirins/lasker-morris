@@ -137,9 +137,6 @@ def generate_moves(state):
     can_fly = (len(my_positions) + in_hand == 3)
 
     for src in my_positions:
-
-
-
         if can_fly:
             for tgt, occupant in board.items():
                 if occupant is None:
@@ -211,48 +208,49 @@ def utility(state):
         return -999999
     return 0
 
+
 def evaluate(state):
     board = state["board"]
     color = state["current_player"]
     opp = "blue" if color == "orange" else "orange"
     score = 0
 
-    mycount = count_on_board(board, color)
-    oppcount = count_on_board(board, opp)
+    # Mill-based scoring
+    player_mills = sum(1 for pos, occupant in board.items() if occupant == color and is_stone_in_mill(board, pos, color))
+    opp_mills = sum(1 for pos, occupant in board.items() if occupant == opp and is_stone_in_mill(board, pos, opp))
+    score += 100 * (player_mills - opp_mills)
 
-    
-    # Mobility evaluation.
-    my_moves = generate_moves(state)
-    alt_state = clone_state(state)
-    alt_state["current_player"] = opp
-    opp_moves = generate_moves(alt_state)
+    # Potential Mills
+    player_potential_mills = sum(1 for pos in board if board[pos] == color and forms_mill_after_placement(board, pos, color))
+    opponent_potential_mills = sum(1 for pos in board if board[pos] == color and forms_mill_after_placement(board, pos, opp))
+    score += 100 * (player_potential_mills - opponent_potential_mills) # Reward for setting up mills
 
-    # Center control bonus.
-    center_positions = ["d6", "d2", "b4", "f4"]
-    center_score = sum(1 if board[pos] == color else -1 if board[pos] == opp else 0 for pos in center_positions)
-    for pos in center_positions:
-        if board.get(pos) == color:
-            center_score += 1
-        elif board.get(pos) == opp:
-            center_score -= 1
+    # Positional advantage
+    position_weights = {
+        'b2': 3, 'f4': 3, 'd2': 3, 'd6': 3,  # High value for center
+        'a4': 2, 'g4': 2, 'd1': 2, 'd7': 2,  # Medium value for edges
+        'a7': 1, 'g7': 1, 'a1': 1, 'g1': 1   # Low value for corners
+    }
+    for pos, occupant in board.items():
+        if occupant == color:
+            score += position_weights.get(pos, 0)
+        else:
+            score -= position_weights.get(pos, 0)
 
-    # Rewards AI for making mills
-    my_mill_bonus = sum(50 for pos, occupant in board.items() if occupant == color and is_stone_in_mill(board, pos, color))
-    # Penalty for opponent making mills
-    opp_mill_penalty = sum(30 for pos, occupant in board.items() if occupant == opp and is_stone_in_mill(board, pos, opp))
-    #potential mills
-    #placing a piece vs moving/sliding a piece
-    potential_mills = sum(15 for pos, occupant in board.items() if occupant == color and forms_mill_after_placement(board, pos, color))
-    #blocking opp mill
+    # Mobility (number of legal moves)
+    player_mobility = len(generate_moves(state))
+    temp_state = clone_state(state)
+    temp_state["current_player"] = opp
+    opponent_mobility = len(generate_moves(temp_state))
+    score += 10 * (player_mobility - opponent_mobility)
 
+    if()
 
-    score += 2 * (mycount - oppcount)
-    #mobility
-    score += 5 * (len(my_moves) - len(opp_moves))
-    score += center_score
-    score += my_mill_bonus - opp_mill_penalty
-    score += potential_mills
+    # Defense (mill blocking)
+    # score -= 125 * opponent_potential_mills
+
     return score
+
 
 def evaluate_or_utility(state):
     if is_terminal(state):
